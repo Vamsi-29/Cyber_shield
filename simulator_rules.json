@@ -1,0 +1,208 @@
+{
+  "scenarios": [
+    {
+      "id": "phish_001",
+      "type": "phishing",
+      "title": "Payment Issue — Verify Your Account",
+      "desc": "A slowly-constructed phishing email that pretends to be from your payment provider.",
+      "from": "billing@paypall-security.com",
+      "subject": "Action required: Unusual payment detected",
+      "body_text": "Dear user,\n\nWe noticed unusual activity on your account. Click the secure link to verify and avoid suspension:\n\nhttps://paypal-secure-login.com/verify\n\nThank you,\nSupport Team",
+      "links": [
+        {"label": "https://paypal-secure-login.com/verify", "url": "https://paypal-secure-login.com/verify", "malicious": true},
+        {"label": "https://www.paypal.com/signin", "url": "https://www.paypal.com/signin", "malicious": false}
+      ],
+      "red_flags": ["Sender domain spelling looks off (paypall)", "Urgent action wording", "Link domain not official"],
+      "attack_flow": [
+        "You clicked the malicious link which submitted credentials to attacker-controlled server.",
+        "Attacker used saved credentials to log into your account from a foreign IP.",
+        "Attacker changed your recovery email and password and enabled payment approvals.",
+        "Attacker transferred funds to a mule account and listed personal data on a leak forum."
+      ],
+      "estimated_damage_label": "Up to ₹50,000 (simulated)",
+      "estimated_damage": 50000,
+      "damage_summary": "Immediate account takeover — unauthorized transfers and personal data leak.",
+      "example_consequences": ["Money withdrawn", "Linked cards compromised", "Identity theft risk"],
+      "tips": ["Always hover to inspect links", "Verify sender email domain carefully", "Enable 2FA"]
+    },
+    {
+      "id": "spear_001",
+      "type": "spear_phishing",
+      "title": "HR Vacation Request (Targeted)",
+      "desc": "A targeted message referencing company and colleague names — crafted to be trusted.",
+      "from": "hr.notifications@company-payroll.com",
+      "subject": "Re: Leave approval for Tony — immediate action required",
+      "body_text": "Hey Tony,\n\nPlease review this attached leave approval and click the link to confirm.\n\nLink: https://company-payroll.com/approve/tony\n\nThanks,\nHR",
+      "links": [
+        {"label": "https://company-payroll.com/approve/tony", "url": "https://company-payroll.com/approve/tony", "malicious": true}
+      ],
+      "red_flags": ["Unexpected attachment", "Domain similar to company domain but different"],
+      "attack_flow": [
+        "You clicked and entered your work credentials on the fake portal.",
+        "Attacker used credentials to access internal systems.",
+        "Attacker exfiltrated internal documents and initiated invoice changes.",
+        "Compromise caused sensitive data exposure and fraudulent vendor payments."
+      ],
+      "estimated_damage_label": "Corporate impact (data & funds)",
+      "estimated_damage": 200000,
+      "damage_summary": "Internal credentials stolen — internal data leak and finance fraud possible.",
+      "tips": ["Confirm with colleagues via a separate channel", "Check exact domain used"]
+    },
+    {
+      "id": "sms_001",
+      "type": "smishing",
+      "title": "Bank SMS — OTP Required",
+      "desc": "SMS claiming an urgent OTP is required directing to a malicious link.",
+      "from": "+1-555-401-002",
+      "body_text": "Your bank account is temporarily locked. Unlock here: https://secure-bank-verify.com/otp",
+      "links": [
+        {"label": "https://secure-bank-verify.com/otp", "url": "https://secure-bank-verify.com/otp", "malicious": true}
+      ],
+      "red_flags": ["Unknown sender number", "Link domain not the official bank site", "Urgent tone"],
+      "attack_flow": [
+        "You tapped the SMS link and entered banking details.",
+        "Attacker used the details to initiate a transfer and requested OTP via SMS.",
+        "With control over both OTP and credentials, attacker authorized the transfer.",
+        "Bank account balance decreased and recovery required litigation."
+      ],
+      "estimated_damage_label": "Up to ₹1,00,000 simulated",
+      "estimated_damage": 100000,
+      "damage_summary": "Bank account drained using social-engineered OTP/credentials.",
+      "tips": ["Never enter credentials from SMS links", "Call bank via official number if unsure"]
+    },
+    {
+      "id": "vish_001",
+      "type": "vishing",
+      "title": "Fake Bank Call — Verification",
+      "desc": "Caller claims to be bank support, asks for account verification and OTP.",
+      "from": "Bank Support",
+      "body_text": "Caller: 'We noticed suspicious transfers. Please share OTP to verify — we can stop it.'",
+      "red_flags": ["Asks for OTP over call", "High pressure / sense of urgency"],
+      "attack_flow": [
+        "You provided OTP during call believing caller.",
+        "Attacker validated OTP and completed unauthorized transfer.",
+        "Funds were moved out and transaction details hidden.",
+        "Recovery required bank escalation and dispute — slow process."
+      ],
+      "estimated_damage_label": "Varies — financial loss likely",
+      "estimated_damage": 75000,
+      "damage_summary": "OTP disclosure allowed attacker to complete transfers.",
+      "tips": ["Banks never ask for OTPs over phone", "Hang up and call official bank number"]
+    },
+    {
+      "id": "fake_login_001",
+      "type": "fake_login",
+      "title": "Google OAuth Fake Consent",
+      "desc": "Fake 'Sign in with Google' page that requests permissions.",
+      "page_title": "Sign in - Google Accounts",
+      "body_text": "This site is requesting full access to your Google Drive and Gmail.",
+      "links": [],
+      "red_flags": ["OAuth consent page requests excessive permissions", "Domain mismatch"],
+      "attack_flow": [
+        "You consent to the fake OAuth request.",
+        "Attacker gained token-scoped access to emails and files.",
+        "Sensitive documents were downloaded and emails sent from your account.",
+        "Attack spread to contacts and internal systems."
+      ],
+      "estimated_damage_label": "Data exfiltration risk",
+      "estimated_damage": 80000,
+      "damage_summary": "OAuth token misuse leads to data leak and impersonation.",
+      "tips": ["Review requested permissions carefully", "Deny access if scope is excessive"]
+    },
+    {
+      "id": "malware_001",
+      "type": "malware_attachment",
+      "title": "Invoice Attachment (Malicious)",
+      "desc": "Attachment disguised as invoice contains trojan that runs on open.",
+      "attachment_name": "Invoice_July_2025.zip",
+      "preview": "Please review the attached invoice and approve payment.",
+      "red_flags": ["Unexpected zip attachment", "Sender email not recognized"],
+      "attack_flow": [
+        "You opened the attachment; ransomware trojan executed.",
+        "Trojan quietly installed and began encrypting documents.",
+        "Ransom note appeared — files encrypted and backup inaccessible.",
+        "Business continuity impacted; backups needed to restore."
+      ],
+      "estimated_damage_label": "Operational & financial impact",
+      "estimated_damage": 150000,
+      "damage_summary": "Files encrypted; operations and finances impacted.",
+      "tips": ["Scan attachments before opening", "Keep offline backups"]
+    },
+    {
+      "id": "ransom_001",
+      "type": "ransomware",
+      "title": "Fake Installer — Ransomware",
+      "desc": "A fake 'tool' installer that encrypts files on execution.",
+      "preview": "Installer requires admin rights to run — 'Start' to continue.",
+      "red_flags": ["Unexpected installer", "Requests admin / unusual permissions"],
+      "attack_flow": [
+        "You executed the installer, granting admin rights.",
+        "Ransomware began encrypting local & mapped network drives.",
+        "Ransom demand displayed with a countdown.",
+        "Data lost and business-critical operations halted."
+      ],
+      "estimated_damage_label": "Major (ransom & downtime)",
+      "estimated_damage": 300000,
+      "damage_summary": "Critical systems encrypted; recovery expensive and slow.",
+      "tips": ["Don't run unknown installers", "Segment networks and keep backups"]
+    },
+    {
+      "id": "qr_001",
+      "type": "qr_phish",
+      "title": "QR Code Payment Request",
+      "desc": "A QR code sticker claims to be for 'Refund' but points to a malicious page.",
+      "body_text": "Scan for refund",
+      "links": [
+        {"label": "https://refund-payments.app/scan", "url": "https://refund-payments.app/scan", "malicious": true}
+      ],
+      "red_flags": ["Untrusted QR source", "Redirects to unrelated domain"],
+      "attack_flow": [
+        "You scanned QR and were redirected to fake login.",
+        "You entered credentials and 2FA was captured.",
+        "Attackers used credentials + 2FA to take accounts.",
+        "Funds and personal info were lost."
+      ],
+      "estimated_damage_label": "Potential financial loss",
+      "estimated_damage": 60000,
+      "damage_summary": "QR redirect led to credential theft.",
+      "tips": ["Check visible URL after scanning", "Use trusted app stores for scanning"]
+    },
+    {
+      "id": "deep_001",
+      "type": "deepfake",
+      "title": "Deepfake Request from Friend",
+      "desc": "Short video clip of a family member asking for urgent money; voice is AI-synthesized.",
+      "preview": "Urgent! Please send ₹30,000 to this account now.",
+      "red_flags": ["Unusual request for money", "Unexpected emotional urgency", "Ask for off-channel payment"],
+      "attack_flow": [
+        "You sent money thinking it was your relative.",
+        "Attacker confirmed and requested more funds.",
+        "Victim realized after funds were gone; scarce traceability.",
+        "Emotional stress and financial loss."
+      ],
+      "estimated_damage_label": "Direct monetary loss",
+      "estimated_damage": 30000,
+      "damage_summary": "Deepfake caused social-engineered money transfer.",
+      "tips": ["Call the person on known number before sending money", "Use video verification or alternative channels"]
+    },
+    {
+      "id": "app_001",
+      "type": "fake_app",
+      "title": "Fake Utility App Requesting Dangerous Permissions",
+      "desc": "Mobile app from unknown vendor requesting access to call, SMS, and storage.",
+      "preview": "Permissions requested: read SMS, send SMS, access storage.",
+      "red_flags": ["Permissions not needed for app function", "Unknown publisher"],
+      "attack_flow": [
+        "You installed app and granted SMS & storage access.",
+        "App sent premium SMS and exfiltrated contacts and files.",
+        "Attacker used contact list to spread scam and monetize via premium services.",
+        "Carrier bills and data breach occurred."
+      ],
+      "estimated_damage_label": "Financial + privacy impact",
+      "estimated_damage": 45000,
+      "damage_summary": "Premium SMS charges & data exfiltration.",
+      "tips": ["Check app publisher and reviews", "Limit permissions"]
+    }
+  ],
+  "common_weak_passwords": ["123456", "password", "qwerty", "abc123", "letmein", "welcome", "admin", "passw0rd", "12345678", "password1"]
+}

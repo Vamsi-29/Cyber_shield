@@ -1,0 +1,32 @@
+[
+  {
+    "intent": "account_hacked",
+    "patterns": ["account hacked", "unauthorized login", "compromised account"],
+    "replies": {
+      "high": [
+        "🚨 Your account is compromised. Reset password, enable 2FA, and remove unknown devices."
+      ],
+      "medium": [
+        "We detected possible unauthorized access. Reset your password and enable 2FA."
+      ],
+      "low": [
+        "Unclear case. Did you see login alerts or just forget your password?"
+      ]
+    }
+  },
+  {
+    "intent": "phishing",
+    "patterns": ["phishing email", "fake link", "password reset scam"],
+    "replies": {
+      "high": [
+        "🚫 This looks like phishing. Don’t click links or share credentials."
+      ],
+      "medium": [
+        "Suspicious email detected. Double-check before clicking anything."
+      ],
+      "low": [
+        "Not fully clear. Was it a strange link or an unexpected reset request?"
+      ]
+    }
+  }
+]

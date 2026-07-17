@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cyber Shield — Attack Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .pulse { animation: pulse 1.6s infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(99,102,241,0); }
+      100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+    .timeline-step { transition: all .28s ease; }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+  <header class="bg-gray-800 p-4 flex items-center justify-between shadow">
+    <div>
+      <h1 class="text-white text-2xl font-semibold">Cyber Shield — Attack Simulator</h1>
+      <p class="text-gray-400 text-sm">Interactive, scenario-driven simulations — experience the full attack lifecycle.</p>
+    </div>
+    <div class="text-sm">
+      <span class="text-gray-400 mr-4">Signed in as: <strong id="userLabel">Guest</strong></span>
+      <button id="openRulesBtn" class="bg-sky-600 px-3 py-1 rounded hover:bg-sky-500">Rules →</button>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-89px)]">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 border-r border-gray-700 p-4 space-y-3">
+      <div class="mb-2">
+        <input id="userIdInput" type="text" placeholder="Enter user_id (optional)" class="w-full p-2 rounded bg-gray-900 border border-gray-700 text-sm" />
+      </div>
+      <h3 class="text-gray-300 mb-2">Simulations</h3>
+      <div id="simButtons" class="space-y-2">
+        <!-- dynamic buttons appended here -->
+      </div>
+
+      <hr class="border-gray-700 my-3" />
+
+      <div>
+        <h4 class="text-gray-300 text-sm mb-1">Quick actions</h4>
+        <button class="w-full bg-green-600 py-2 rounded hover:bg-green-500" onclick="startRandom()">Start Random Scenario</button>
+        <button class="w-full bg-yellow-600 py-2 rounded hover:bg-yellow-500 mt-2" onclick="openHistory()">View Recent Local Results</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-auto">
+      <div id="mainContainer" class="space-y-6">
+        <div id="introCard" class="bg-gray-800 p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold">How it works</h2>
+          <p class="text-gray-400 mt-2">
+            Each simulation is a scenario that can be benign or malicious. You will be presented with a decision
+            (click link, login, open attachment, scan QR, answer the call, etc.). Choosing incorrectly will
+            animate an attack timeline and show real-world consequences (account compromise, money loss, data leak).
+            Choose correctly and you’ll get a full breakdown of why you were safe.
+          </p>
+        </div>
+
+        <!-- Simulation content area -->
+        <section id="simulationArea" class="bg-gray-800 p-6 rounded-lg shadow min-h-[360px]">
+          <p class="text-gray-400">Select a simulation from the left to begin.</p>
+        </section>
+
+        <!-- Timeline / Outcome area -->
+        <section id="outcomeArea" class="bg-gray-800 p-6 rounded-lg shadow hidden">
+          <h3 class="text-lg font-semibold mb-3">Attack Timeline</h3>
+          <div id="timeline" class="space-y-3"></div>
+
+          <div id="damageSummary" class="mt-6 bg-gray-900 p-4 rounded hidden">
+            <h4 class="text-red-400 font-bold">Damage Summary</h4>
+            <div id="damageDetails" class="mt-2 text-sm text-gray-300"></div>
+            <div id="preventionTips" class="mt-3 text-sm text-green-300"></div>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button id="retryBtn" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-500">Retry Scenario</button>
+            <button id="replayBtn" class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-500">Replay Timeline</button>
+            <button id="backToSimBtn" class="bg-gray-600 px-4 py-2 rounded hover:bg-gray-500">Back to Sim</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: rules view -->
+  <div id="rulesModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-gray-800 max-w-3xl w-full p-6 rounded">
+      <h3 class="text-lg font-semibold">Simulator Rules & Data</h3>
+      <pre id="rulesContent" class="mt-3 max-h-[60vh] overflow-auto text-xs bg-gray-900 p-3 rounded"></pre>
+      <div class="mt-4 text-right">
+        <button onclick="closeRules()" class="bg-red-600 px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Core UI + Scenario Engine (vanilla JS)
+   - Loads simulator_rules.json
+   - Builds scenario selection buttons dynamically
+   - Handles user action (safe/report vs unsafe)
+   - Animates timeline, shows damage summary
+   - Sends result to save_history.php (best-effort)
+*/
+
+let rules = null;
+let currentScenario = null;
+let lastResult = null;
+const localResults = []; // in-memory local history (also saved via AJAX if server present)
+
+async function init() {
+  try {
+    const res = await fetch('simulator_rules.json');
+    rules = await res.json();
+  } catch (e) {
+    console.error('Failed to load simulator_rules.json', e);
+    rules = { categories: [], scenarios: [] };
+  }
+
+  buildSidebar();
+  document.getElementById('openRulesBtn').addEventListener('click', () => {
+    document.getElementById('rulesContent').innerText = JSON.stringify(rules, null, 2);
+    document.getElementById('rulesModal').classList.remove('hidden');
+    document.getElementById('rulesModal').classList.add('flex');
+  });
+  document.getElementById('retryBtn').addEventListener('click', () => startScenario(currentScenario.id));
+  document.getElementById('replayBtn').addEventListener('click', () => replayTimeline());
+  document.getElementById('backToSimBtn').addEventListener('click', () => {
+    document.getElementById('outcomeArea').classList.add('hidden');
+    document.getElementById('simulationArea').classList.remove('hidden');
+  });
+}
+init();
+
+function closeRules() {
+  document.getElementById('rulesModal').classList.add('hidden');
+  document.getElementById('rulesModal').classList.remove('flex');
+}
+
+function buildSidebar() {
+  const simButtons = document.getElementById('simButtons');
+  // Use categories (if present) to organize
+  const types = [...new Set(rules.scenarios.map(s => s.type))];
+  types.forEach(type => {
+    const btn = document.createElement('button');
+    btn.className = 'w-full bg-gray-700 p-2 rounded hover:bg-sky-600 text-left';
+    btn.innerText = `${getTypeEmoji(type)} ${formatTypeName(type)}`;
+    btn.onclick = () => startRandomOfType(type);
+    simButtons.appendChild(btn);
+  });
+  // 'All' button
+  const allBtn = document.createElement('button');
+  allBtn.className = 'w-full bg-gray-700 p-2 rounded hover:bg-sky-600 text-left mt-2';
+  allBtn.innerText = '🎲 Browse All Scenarios';
+  allBtn.onclick = () => openAllScenarios();
+  simButtons.appendChild(allBtn);
+}
+
+function formatTypeName(type) {
+  return type.split('_').map(p => p[0].toUpperCase() + p.slice(1)).join(' ');
+}
+function getTypeEmoji(type) {
+  const map = {
+    phishing: '📧', spear_phishing: '🎯', smishing: '📱', vishing: '📞',
+    fake_login: '🔐', oauth_abuse: '🔗', ransomware: '💣', malware_attachment: '📎',
+    qr_phish: '🔳', deepfake: '🎭', fake_app: '📲', password_check: '🔑'
+  };
+  return map[type] || '⚠️';
+}
+
+function startRandom() {
+  if (!rules || !rules.scenarios) return;
+  const idx = Math.floor(Math.random() * rules.scenarios.length);
+  startScenario(rules.scenarios[idx].id);
+}
+
+function startRandomOfType(type) {
+  const list = rules.scenarios.filter(s => s.type === type);
+  if (!list.length) { alert('No scenarios of this type'); return; }
+  const idx = Math.floor(Math.random() * list.length);
+  startScenario(list[idx].id);
+}
+
+function openAllScenarios() {
+  const area = document.getElementById('simulationArea');
+  area.innerHTML = '<h3 class="text-lg font-semibold mb-3">All Scenarios</h3>';
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+  rules.scenarios.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'bg-gray-900 p-4 rounded';
+    card.innerHTML = `<div class="flex justify-between items-start">
+      <div>
+        <h4 class="font-semibold">${s.title}</h4>
+        <div class="text-xs text-gray-400">${formatTypeName(s.type)}</div>
+      </div>
+      <div class="text-sm text-gray-300">${s.estimated_damage_label || ''}</div>
+    </div>
+    <p class="text-sm text-gray-400 mt-2 line-clamp-3">${s.desc || s.preview || ''}</p>
+    <div class="mt-3 flex gap-2">
+      <button class="bg-sky-600 px-3 py-1 rounded" onclick="startScenario('${s.id}')">Start</button>
+      <button class="bg-gray-700 px-3 py-1 rounded" onclick="showScenarioDetails('${s.id}')">Details</button>
+    </div>`;
+    grid.appendChild(card);
+  });
+  area.appendChild(grid);
+}
+
+/* Show scenario details modal/popover */
+function showScenarioDetails(id) {
+  const s = rules.scenarios.find(x => x.id === id);
+  if (!s) return;
+  alert(`${s.title}\n\nType: ${s.type}\n\n${s.desc || s.preview || ''}\n\nRed Flags: ${s.red_flags?.join(', ') || '—'}`);
+}
+
+/* Main scenario runner */
+function startScenario(id) {
+  const s = rules.scenarios.find(x => x.id === id);
+  if (!s) { alert('Scenario not found'); return; }
+  currentScenario = s;
+  lastResult = null;
+  // Render scenario based on type
+  const area = document.getElementById('simulationArea');
+  area.innerHTML = ''; // clear
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'flex justify-between items-start';
+  header.innerHTML = `<div>
+    <h2 class="text-xl font-semibold">${getTypeEmoji(s.type)} ${s.title}</h2>
+    <div class="text-xs text-gray-400 mt-1">${s.desc || ''}</div>
+  </div>`;
+  area.appendChild(header);
+
+  // Build the scenario UI variations:
+  const content = document.createElement('div');
+  content.className = 'mt-4';
+
+  if (s.type === 'phishing' || s.type === 'spear_phishing') {
+    // Render fake email client look
+    const from = s.from || 'no-reply@example.com';
+    const subject = s.subject || s.title;
+    const body = s.body_text || s.preview || '';
+    const links = s.links || [];
+
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-4 shadow max-w-3xl">
+        <div class="border-b pb-2 mb-2">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-xs text-gray-600">From</div>
+              <div class="font-semibold">${escapeHtml(from)}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-600">Subject</div>
+              <div class="font-semibold">${escapeHtml(subject)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-sm whitespace-pre-wrap">${escapeHtml(body)}</div>
+        <div id="linksArea" class="mt-4"></div>
+      </div>
+    `;
+    area.appendChild(content);
+
+    const linksArea = document.getElementById('linksArea');
+    links.forEach((L, idx) => {
+      const btn = document.createElement('a');
+      btn.href = '#';
+      btn.dataset.idx = idx;
+      btn.className = 'inline-block mr-3 text-sky-600 underline';
+      btn.innerText = L.label || L.url;
+      btn.onclick = (ev) => {
+        ev.preventDefault();
+        // If link is benign, show info; if malicious, start attack flow
+        if (L.malicious) {
+          decisionPrompt('Clicked link', s, {action: 'click_link', target: L.url});
+        } else {
+          // benign path: open informational modal and offer 'Report' or 'Open'
+          showInfoModal('This link looks legitimate in this simulation. You can still report if unsure.', () => {
+            // treat as safe open
+            decisionPrompt('Opened benign link', s, {action: 'open_benign_link', target: L.url});
+          });
+        }
+      };
+      linksArea.appendChild(btn);
+    });
+
+    // report button
+    const reportBtn = document.createElement('button');
+    reportBtn.className = 'mt-4 bg-red-600 px-3 py-1 rounded';
+    reportBtn.innerText = 'Report as Suspicious';
+    reportBtn.onclick = () => decisionPrompt('Reported', s, {action: 'report'});
+    area.appendChild(reportBtn);
+
+  } else if (s.type === 'smishing') {
+    content.innerHTML = `
+      <div class="bg-gray-700 p-4 rounded max-w-lg">
+        <div class="text-xs text-gray-400">Message from: <strong>${escapeHtml(s.from || 'Unknown')}</strong></div>
+        <div class="mt-2 text-sm">${escapeHtml(s.body_text)}</div>
+        <div class="mt-3">
+          <button class="bg-amber-500 px-3 py-1 rounded" onclick="decisionPrompt('Clicked SMS link', currentScenario, {action:'sms_click'})">Open Link</button>
+          <button class="bg-red-600 px-3 py-1 rounded ml-2" onclick="decisionPrompt('Reported SMS', currentScenario, {action:'report'})">Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'vishing') {
+    content.innerHTML = `
+      <div class="bg-gray-700 p-4 rounded max-w-lg">
+        <div class="text-sm">Incoming call from <strong>${escapeHtml(s.from)}</strong></div>
+        <div class="mt-3 text-gray-300">${escapeHtml(s.body_text)}</div>
+        <div class="mt-3">
+          <button class="bg-emerald-600 px-3 py-1 rounded" onclick="decisionPrompt('Answered call', currentScenario, {action:'answer_call'})">Answer Call</button>
+          <button class="bg-red-600 px-3 py-1 rounded ml-2" onclick="decisionPrompt('Ignored call', currentScenario, {action:'ignore_call'})">Ignore / Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'fake_login' || s.type === 'oauth_abuse' || s.type === 'fake_app') {
+    // show fake login / oauth UI
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-6 shadow max-w-md">
+        <h3 class="text-lg font-semibold">${escapeHtml(s.page_title || 'Login')}</h3>
+        <div class="mt-3">
+          <input id="sim_user" class="w-full p-2 border rounded mb-2" placeholder="Username" />
+          <input id="sim_pass" type="password" class="w-full p-2 border rounded mb-3" placeholder="Password" />
+          <div class="flex gap-2">
+            <button class="bg-blue-600 px-3 py-2 rounded" onclick="decisionPrompt('Submitted credentials', currentScenario, {action:'submit_credentials', user: document.getElementById('sim_user').value})">Login</button>
+            <button class="bg-red-600 px-3 py-2 rounded" onclick="decisionPrompt('Reported page', currentScenario, {action:'report'})">Report</button>
+          </div>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'malware_attachment') {
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-4 shadow max-w-2xl">
+        <div><strong>Attachment:</strong> ${escapeHtml(s.attachment_name || 'Invoice.pdf')}</div>
+        <div class="mt-2 text-sm">${escapeHtml(s.preview || s.body_text || '')}</div>
+        <div class="mt-3 flex gap-2">
+          <button class="bg-orange-600 px-3 py-1 rounded" onclick="decisionPrompt('Downloaded attachment', currentScenario, {action:'download_attach'})">Download / Open</button>
+          <button class="bg-red-600 px-3 py-1 rounded" onclick="decisionPrompt('Reported attachment', currentScenario, {action:'report'})">Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'ransomware') {
+    // initial bait
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-6 shadow max-w-2xl">
+        <div class="text-sm">${escapeHtml(s.preview)}</div>
+        <div class="mt-3">
+          <button class="bg-orange-600 px-3 py-2 rounded" onclick="decisionPrompt('Executed file', currentScenario, {action:'execute'})">Run Installer</button>
+          <button class="bg-red-600 px-3 py-2 rounded" onclick="decisionPrompt('Did not run', currentScenario, {action:'report'})">Do Not Run / Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'qr_phish') {
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-6 shadow max-w-md">
+        <div class="text-sm">QR Code: <span class="inline-block w-24 h-24 bg-gray-100 text-gray-700 flex items-center justify-center rounded">QR</span></div>
+        <div class="mt-3">
+          <button class="bg-orange-600 px-3 py-2 rounded" onclick="decisionPrompt('Scanned QR', currentScenario, {action:'scan_qr'})">Scan QR</button>
+          <button class="bg-red-600 px-3 py-2 rounded ml-2" onclick="decisionPrompt('Reported QR', currentScenario, {action:'report'})">Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'deepfake') {
+    content.innerHTML = `
+      <div class="bg-white text-black rounded p-6 shadow max-w-2xl">
+        <h3 class="font-semibold">${escapeHtml(s.title)}</h3>
+        <div class="mt-2 text-sm">${escapeHtml(s.preview)}</div>
+        <div class="mt-3 flex gap-2">
+          <button class="bg-orange-600 px-3 py-2 rounded" onclick="decisionPrompt('Believed deepfake', currentScenario, {action:'believe'})">Comply with Request</button>
+          <button class="bg-red-600 px-3 py-2 rounded" onclick="decisionPrompt('Questioned deepfake', currentScenario, {action:'report'})">Verify / Report</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(content);
+
+  } else if (s.type === 'password_check') {
+    content.innerHTML = `
+      <div class="max-w-md">
+        <form id="pwForm" class="space-y-3">
+          <input id="pwInput" type="password" class="w-full p-2 rounded text-black" placeholder="Enter password to check" />
+          <button class="bg-blue-600 px-3 py-2 rounded" type="submit">Check Strength</button>
+        </form>
+        <div id="pwResult" class="mt-3 text-sm text-gray-300"></div>
+      </div>
+    `;
+    area.appendChild(content);
+    document.getElementById('pwForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const pw = document.getElementById('pwInput').value;
+      const r = await fetch('simulate_password_attack.php', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: 'password=' + encodeURIComponent(pw)});
+      const data = await r.json();
+      document.getElementById('pwResult').innerHTML = `<strong>${data.strength}</strong><br>${data.details.join('<br>')}<br>Estimate: ${data.crack_time}`;
+      // Save minimal history locally & server
+      saveResult({simulation_type: 'password_check', scenario_id: s.id, action: 'check_password', result: data.strength, damage_estimate: 'n/a'});
+    });
+  }
+
+  // If not password_check, append content (some appended earlier)
+  if (s.type !== 'password_check') area.appendChild(content);
+
+  // show pointer to red flags help
+  const hint = document.createElement('div');
+  hint.className = 'mt-4 text-sm text-gray-400';
+  hint.innerHTML = `Need help? <button class="text-amber-400 underline" onclick="showRedFlags(currentScenario)">Show red flags</button>`;
+  area.appendChild(hint);
+
+  // scroll to top
+  window.scrollTo({top:0, behavior:'smooth'});
+  document.getElementById('simulationArea').scrollIntoView();
+}
+
+/* Decision flow */
+function decisionPrompt(actionLabel, scenario, detail={}) {
+  // decisionLabel example: "Clicked link" / "Submitted credentials" / "Download"
+  // Look up scenario.intent_outcome or default: if scenario.malicious_by_action[action] => consequence
+  // We'll pick outcome based on scenario.action_outcomes or default malicious boolean
+  const area = document.getElementById('simulationArea');
+  area.innerHTML = `<div class="bg-gray-900 p-6 rounded"><p class="text-gray-300">Processing action: <strong>${escapeHtml(actionLabel)}</strong>...</p></div>`;
+  // small delay to simulate processing
+  setTimeout(() => {
+    processOutcome(scenario, detail);
+  }, 900);
+}
+
+function processOutcome(scenario, detail) {
+  // Decide whether the user action caused compromise
+  // We examine the detail.action if available and scenario.links or flags
+  const maliciousTriggered = evaluateActionTriggers(scenario, detail);
+  if (maliciousTriggered) {
+    // Start timeline showing attacker steps
+    startTimeline(scenario, detail);
+  } else {
+    // Safe outcome
+    showSafeOutcome(scenario, detail);
+  }
+}
+
+function evaluateActionTriggers(scenario, detail) {
+  // Simple heuristics:
+  // - If user clicked a link object marked malicious => compromise
+  // - If user submitted credentials on fake_login & scenario.malicious === true => compromise
+  // - If user downloaded attachment and scenario.malicious true => compromise
+  // - For randomized scenarios where certain links are flagged as benign sometimes, scenario.links[].malicious is authoritative
+  if (!scenario) return false;
+  const act = (detail && detail.action) ? detail.action : '';
+
+  if (act === 'click_link' || act === 'sms_click') {
+    // check detail.target vs links
+    const target = detail.target || '';
+    const link = (scenario.links || []).find(l => l.url === target || l.label === target);
+    if (link) return !!link.malicious;
+    // fallback: if scenario.malicious === true => compromise
+    return !!scenario.malicious;
+  }
+
+  if (act === 'submit_credentials') {
+    // if scenario.is_fake_login or malware => likely compromise
+    return (scenario.type === 'fake_login' || scenario.malicious);
+  }
+
+  if (act === 'download_attach' || act === 'execute') {
+    return !!scenario.malicious;
+  }
+
+  if (act === 'scan_qr') return !!scenario.malicious;
+  if (act === 'answer_call') return !!scenario.malicious;
+  if (act === 'believe') return !!scenario.malicious;
+
+  // default: if scenario.malicious flag true => compromise else safe
+  return !!scenario.malicious;
+}
+
+/* Timeline: simulate attack progression step-by-step */
+function startTimeline(scenario, detail) {
+  document.getElementById('simulationArea').classList.add('hidden');
+  const out = document.getElementById('outcomeArea');
+  out.classList.remove('hidden');
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+
+  const steps = scenario.attack_flow || [
+    'Attacker harvests credentials / session data.',
+    'Attacker logs into account from new location.',
+    'Attacker extracts personal data and linked services.',
+    'Attacker initiates fund transfers and/or blackmails with data.',
+    'Victim loses access; recovery is complex and costly.'
+  ];
+
+  // Show animated steps with small delay between them
+  let i = 0;
+  function showNext() {
+    if (i >= steps.length) {
+      // show damage summary
+      showDamageSummary(scenario);
+      // save server-local history: result = fail with damage_estimate
+      lastResult = { simulation_type: scenario.type, scenario_id: scenario.id, action: detail.action || 'unknown', result: 'fail', damage_estimate: scenario.estimated_damage || 'unknown' };
+      saveResult(lastResult);
+      return;
+    }
+    const stepText = steps[i];
+    const node = document.createElement('div');
+    node.className = 'timeline-step bg-gray-900 p-3 rounded flex items-start gap-3';
+    node.innerHTML = `<div class="w-8 h-8 flex items-center justify-center bg-red-600 rounded-full text-sm">${i+1}</div><div><div class="font-medium">${escapeHtml(stepText)}</div><div class="text-xs text-gray-400 mt-1">Timestamp: ${new Date().toLocaleString()}</div></div>`;
+    timeline.appendChild(node);
+    i++;
+    setTimeout(showNext, 1000 + Math.random()*1100); // jitter
+  }
+  showNext();
+}
+
+function showDamageSummary(scenario) {
+  const ds = document.getElementById('damageSummary');
+  const details = document.getElementById('damageDetails');
+  const tips = document.getElementById('preventionTips');
+
+  // Compose summary using scenario.damage_summary or defaults
+  const damageText = scenario.damage_summary || `Potential loss: ${scenario.estimated_damage_label || 'Financial & data loss'}. Account takeover & identity theft possible.`;
+  details.innerHTML = `<div class="text-sm">${escapeHtml(damageText)}</div>
+    <div class="mt-2 text-xs text-gray-400">Example consequences: ${escapeHtml((scenario.example_consequences || []).join(', ') || 'Stolen funds, social impersonation, data leak')}</div>`;
+
+  // Prevention tips
+  const tipsList = (scenario.tips && scenario.tips.length) ? scenario.tips : [
+    'Verify sender addresses and links before clicking.',
+    'Enable multi-factor authentication.',
+    'Do not reuse passwords.',
+    'Keep devices and software updated.'
+  ];
+  tips.innerHTML = `<div class="font-semibold text-green-300">Prevention Tips:</div><ul class="list-disc list-inside mt-2 text-sm">${tipsList.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
+
+  ds.classList.remove('hidden');
+  // show retry / replay controls
+}
+
+/* Safe outcome */
+function showSafeOutcome(scenario, detail) {
+  document.getElementById('simulationArea').classList.remove('hidden');
+  const area = document.getElementById('simulationArea');
+  area.innerHTML = `<div class="bg-emerald-900 p-4 rounded"><h3 class="text-lg font-semibold text-emerald-300">Nice catch — you avoided an attack</h3>
+    <p class="text-gray-300 mt-2">You reported or avoided a malicious action. Review red flags to learn more.</p>
+    <div class="mt-3"><button class="bg-sky-600 px-3 py-1 rounded" onclick="showRedFlags(currentScenario)">Show Red Flags</button></div>
+  </div>`;
+  // Save safe result
+  lastResult = { simulation_type: scenario.type, scenario_id: scenario.id, action: detail.action || 'report', result: 'pass', damage_estimate: '0' };
+  saveResult(lastResult);
+}
+
+/* Replay timeline (if last result was fail) */
+function replayTimeline() {
+  if (!currentScenario) return;
+  document.getElementById('timeline').innerHTML = '';
+  startTimeline(currentScenario, {});
+}
+
+/* Show red flags helper */
+function showRedFlags(s) {
+  if (!s) s = currentScenario;
+  if (!s) return alert('No scenario selected');
+  const flags = s.red_flags || ['Check sender, links, punctuation, domain homograph, and urgency'];
+  alert('Red Flags:\n\n- ' + flags.join('\n- '));
+}
+
+/* Save results: try server, always store local */
+async function saveResult(payload) {
+  // payload: {simulation_type, scenario_id, action, result, damage_estimate}
+  payload.user_id = document.getElementById('userIdInput').value || 0;
+  payload.created_at = new Date().toISOString();
+  // push to local array for "View Recent Local Results"
+  localResults.unshift(payload);
+  if (localResults.length > 50) localResults.pop();
+
+  // attempt to save via AJAX to save_history.php
+  try {
+    await fetch('save_history.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    // ignore response (best-effort)
+  } catch (e) {
+    // silent fail — server may not exist
+    console.warn('save_history.php failed', e);
+  }
+}
+
+function openHistory() {
+  if (!localResults.length) {
+    alert('No local results yet. Run some simulations first.');
+    return;
+  }
+  const lines = localResults.slice(0, 10).map(r => `${r.created_at} — ${r.simulation_type} — ${r.scenario_id} — ${r.result} — ${r.damage_estimate}`);
+  alert('Recent (local) results:\n\n' + lines.join('\n'));
+}
+
+/* Utility: escape HTML to avoid injection in simulation */
+function escapeHtml(s) {
+  if (!s && s !== 0) return '';
+  return String(s).replace(/[&<>"'`=\/]/g, function (c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c];
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phishing Link & Message Detector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .safe { background: #d4edda; color: #155724; }
+    .danger { background: #f8d7da; color: #721c24; }
+    .safety-steps {
+      margin-top: 15px;
+      font-weight: normal;
+    }
+    .safety-steps ul {
+      padding-left: 20px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Phishing Link & Message Detector</h2>
+    <p>Paste a message or URL below:</p>
+    <textarea id="inputText" placeholder="Paste link or message here..."></textarea>
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="result" class="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    function analyze() {
+      const input = document.getElementById('inputText').value.toLowerCase();
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+
+      const phishingKeywords = [
+        "verify", "login", "account", "update", "bank", "urgent",
+        "click here", "password", "reset", "suspend", "security alert"
+      ];
+
+      const suspiciousDomains = [
+        "bit.ly", "tinyurl", "ow.ly", "t.co", "rb.gy", "shady.site", "freegift", "giveaway"
+      ];
+
+      let isMalicious = false;
+
+      phishingKeywords.forEach(keyword => {
+        if (input.includes(keyword)) isMalicious = true;
+      });
+
+      suspiciousDomains.forEach(domain => {
+        if (input.includes(domain)) isMalicious = true;
+      });
+
+      if (isMalicious) {
+        resultDiv.className = "result danger";
+        resultDiv.innerHTML = `
+          🚨 <strong>Dangerous:</strong> This message or link contains known phishing terms or suspicious domains!
+          <div class="safety-steps">
+            <strong>Immediate Safety Steps:</strong>
+            <ul>
+              <li>Step 1: Disconnect from the Internet</li>
+              <li>Step 2: Do Not Enter Any Information</li>
+              <li>Step 3: Scan Your Device for Malware</li>
+              <li>Step 4: Change Your Passwords</li>
+              <li>Step 5: Alert the Affected Service</li>
+              <li>Step 6: Report the Phishing Attempt</li>
+              <li>Step 7: Monitor Your Accounts</li>
+            </ul>
+          </div>
+        `;
+      } else {
+        resultDiv.className = "result safe";
+        resultDiv.innerHTML = `✅ <strong>Safe:</strong> No phishing indicators were detected in your message.`;
+      }
+    }
+  </script>
+</body>
+</html>

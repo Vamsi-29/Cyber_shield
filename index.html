@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cyber Shield: Security Awareness and Rescue System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
+  <style>
+    /* Fade-in animation for suggestions */
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<!-- ================= HEADER / NAVIGATION ================= -->
+<header class="bg-white shadow">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-blue-600">
+      Cyber Shield: Security Awareness and Rescue System
+    </h1>
+
+    <nav class="flex items-center gap-4 text-sm">
+      <a href="#HelpingTopics" class="hover:text-blue-600 transition">Helping Topics</a>
+      <a href="#form" class="hover:text-blue-600 transition">Get Executive Help</a>
+      <a href="attack_simulator.html" class="hover:text-blue-400 transition">Cyber Attack Simulator</a>
+
+      <!-- Auth / Profile Buttons -->
+      <a id="authBtn" href="login.html" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Login</a>
+      <a id="registerBtn" href="register.html" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">Register</a>
+      
+      <!-- Profile Circle -->
+      <div class="relative inline-block text-left" id="profileMenuContainer">
+        <button id="profileBtn" class="hidden w-10 h-10 rounded-full bg-blue-600 text-white text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400">
+          A
+        </button>
+        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+          <a href="account_details.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Account Details</a>
+          <a href="change_password.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Password</a>
+          <a href="delete_account.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete Account</a>
+          <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold">Logout</button>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HERO SECTION ================= -->
+<section class="bg-blue-50 py-20">
+  <div class="max-w-4xl mx-auto text-center">
+    <h2 class="text-4xl font-bold mb-4">Facing a Cyber Threat?</h2>
+    <p class="text-lg mb-6">We're here to help you detect, understand, and recover from online scams, data breaches, and security incidents.</p>
+  </div>
+</section>
+
+<!-- ================= ISSUE INPUT ================= -->
+<section class="mb-12 flex flex-col items-center">
+  <label for="userQuery" class="block text-lg font-medium mb-4">Describe your issue</label>
+  
+  <!-- Input box -->
+  <textarea id="userQuery"
+            placeholder="Type your cyber security question or issue here..."
+            aria-label="Cybersecurity help input"
+            rows="7"
+            class="w-full max-w-4xl p-4 border rounded-xl bg-white shadow-sm resize-none
+                   text-gray-800 placeholder-gray-400 border-gray-300 focus:outline-none 
+                   focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out"></textarea>
+
+  <!-- Button -->
+  <button onclick="getHelp()" 
+          class="mt-6 bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 
+                 transition transform hover:scale-105">
+    Get Help
+  </button>
+</section>
+
+<!-- ================= WRAPPER ================= -->
+<div class="flex justify-center gap-8 mt-8 mb-12">
+  <!-- ================= SUGGESTIONS ================= -->
+  <div id="suggestions" class="hidden bg-white p-6 rounded-xl shadow w-86 h-80 text-center flex flex-col">
+    <h3 class="text-xl font-semibold mb-3">Suggested Help:</h3>
+    <ul id="suggestionsList" class="list-disc list-inside text-gray-700 text-left space-y-2 overflow-auto"></ul>
+  </div>
+
+  <!-- ================= SERVICE RECOMMENDATION ================= -->
+  <div id="serviceSuggestions" class="hidden bg-blue-50 p-6 rounded-xl shadow w-90 h-90 text-center flex flex-col">
+    <h3 class="text-xl font-semibold mb-3 text-blue-700">Recommended Service:</h3>
+    <div id="serviceContent" class="text-gray-700 text-center flex-1 overflow-auto"></div>
+    <p class="mt-4 text-sm text-gray-600">
+      ⚠️ Not satisfied? You can always request 
+      <a href="#form" class="text-blue-600 font-semibold hover:underline">personal executive help</a>.
+    </p>
+  </div>
+</div>
+<script>
+  function getHelp() {
+    const input = document.getElementById("userQuery").value.toLowerCase().trim();
+    const suggestionsBox = document.getElementById("suggestions");
+    const suggestionsList = document.getElementById("suggestionsList");
+    const serviceBox = document.getElementById("serviceSuggestions");
+    const serviceContent = document.getElementById("serviceContent");
+
+    // Reset content
+    suggestionsList.innerHTML = "";
+    serviceContent.innerHTML = "";
+
+    let suggestion = "Sorry, we couldn't identify the issue. Please describe it more clearly.";
+    let service = null;
+
+    // ==== Service Matching Logic ====
+    if (input.includes("hacked") || input.includes("stolen")) {
+      suggestion = "It looks like your account may have been compromised. Reset your password immediately.";
+      service = {
+        text: "We recommend using our <b>Account Recovery Service</b> to regain access to your account.",
+        link: "account_recovery.html",
+        button: "Start Account Recovery"
+      };
+    } 
+    else if (input.includes("scam") || input.includes("fraud") || input.includes("fake")) {
+      suggestion = "This seems like a scam attempt. Do not click on suspicious links.";
+      service = {
+        text: "You should report this scam using our <b>Scam Reporting Service</b>.",
+        link: "report.html",
+        button: "Report Scam"
+      };
+    } 
+    else if (input.includes("breach") || input.includes("leak") || input.includes("exposed")) {
+      suggestion = "Your data may have been exposed. It’s important to verify what was leaked.";
+      service = {
+        text: "Try our <b>Data Breach Check</b> tool and check you data is involved in breach or not.",
+        link: "darkweb.html",
+        button: "Check for Breach"
+      };
+    } 
+    else if (input.includes("phish") || input.includes("suspicious email") || input.includes("fake email")) {
+      suggestion = "This looks like a phishing attempt. Be cautious with links and attachments.";
+      service = {
+        text: "We suggest our <b>Phishing Detection Service</b> to analyse the phishing links.",
+        link: "linkdetection.html",
+        button: "Detect Phishing"
+      };
+    } 
+    else if (input.includes("audit") || input.includes("security check") || input.includes("vulnerability")|| input.includes("virus") || input.includes("malware") || input.includes("cleanup")) {
+      suggestion = "A security audit can help you identify weak points before attackers do.";
+      service = {
+        text: "Run our <b>Security Audit Service</b>to test your device security.",
+        link: "security_audit.html",
+        button: "Start Audit"
+      };
+    } 
+    else if (input.includes("Old Accounts") || input.includes("fake accounts") || input.includes("cleanup")) {
+      suggestion = "Your device might be infected. Avoid logging into sensitive accounts until cleaned.";
+      service = {
+        text: "Use our <b>System Cleanup Service</b>.",
+        link: "cleanup.html",
+        button: "Clean My System"
+      };
+    }
+
+    // ==== Output ====
+    suggestionsBox.classList.remove("hidden"); // always show suggestions
+    const li = document.createElement("li");
+    li.textContent = suggestion;
+    suggestionsList.appendChild(li);
+
+    // show service only if matched
+    if (service) {
+      serviceBox.classList.remove("hidden");
+      serviceContent.innerHTML = `
+        <p class="mb-3">${service.text}</p>
+        <a href="${service.link}" 
+           class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+          ${service.button}
+        </a>`;
+    } else {
+      serviceBox.classList.add("hidden");
+    }
+
+    suggestionsBox.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+</script>
+
+
+
+<!-- ================= HELP FORM ================= -->
+<section id="form" class="bg-white py-16 px-4">
+  <h3 class="text-2xl font-bold mb-6 text-center">Get Executive Help</h3>
+  <form action="https://formsubmit.co/team.cyber.helpdesk@gmail.com" method="POST" 
+        id="reportForm" class="space-y-6 bg-gray-50 p-6 rounded-xl shadow-md max-w-3xl mx-auto">
+
+    <!-- Name -->
+    <div>
+      <label class="block mb-1 font-semibold" for="fullName">Full Name</label>
+      <input type="text" id="fullName" name="fullName" required class="w-full px-4 py-2 border rounded-lg" />
+    </div>
+
+    <!-- Email -->
+    <div>
+      <label class="block mb-1 font-semibold" for="email">Email</label>
+      <input type="email" id="email" name="email" required class="w-full px-4 py-2 border rounded-lg" />
+    </div>
+
+    <!-- Issue Type -->
+    <div>
+      <label class="block mb-1 font-semibold" for="issueType">Issue Type</label>
+      <select id="issueType" name="issueType" class="w-full px-4 py-2 border rounded-lg">
+        <option>Scam</option>
+        <option>Malware</option>
+        <option>Hacked Account</option>
+        <option>Data Leak</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <!-- Message -->
+    <div>
+      <label class="block mb-1 font-semibold" for="message">Message</label>
+      <textarea id="message" name="message" rows="5" required class="w-full px-4 py-2 border rounded-lg"></textarea>
+    </div>
+
+    <!-- Submit -->
+   <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition transform hover:scale-105 block mx-auto">
+  Submit
+</button>
+  </form>
+</section>
+<!-- ================= SERVICES ================= -->
+<section id="HelpingTopics" class="py-16 bg-gray-50 text-center">
+  <div class="max-w-5xl mx-auto px-4">
+    <h2 class="text-3xl font-bold text-gray-800 mb-4">How can we help you?</h2>
+    <p class="text-gray-600 mb-10">Select a service below to get started</p>
+
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Account Recovery -->
+      <div class="bg-gradient-to-br from-blue-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-blue-600 mb-2">Recover Account</h3>
+        <p class="text-gray-700 mb-4 flex-grow">Lost access? Follow simple steps to regain your account safely.</p>
+        <a href="account_recovery.html" class="text-blue-700 font-semibold hover:underline mt-auto">Start Recovery</a>
+      </div>
+
+      <!-- Report Scam -->
+      <div class="bg-gradient-to-br from-red-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-red-600 mb-2">Report Scam</h3>
+        <p class="text-gray-700 mb-4 flex-grow">Suspicious message or link? Report it to protect yourself and others.</p>
+        <a href="report.html" class="text-red-700 font-medium hover:underline mt-auto">Report Now</a>
+      </div>
+
+      <!-- Security Audit -->
+      <div class="bg-gradient-to-br from-purple-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-purple-600 mb-2">Security Audit</h3>
+        <p class="text-gray-700 mb-4 flex-grow">Check your online safety with a quick digital security audit.</p>
+        <a href="security_audit.html" class="text-purple-700 font-medium hover:underline mt-auto">Take Audit</a>
+      </div>
+
+      <!-- Account Cleanup -->
+      <div class="bg-gradient-to-br from-green-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-green-600 mb-2">Clean Accounts</h3>
+        <p class="text-gray-700 mb-4 flex-grow">Remove old accounts to reduce digital risk and protect your data.</p>
+        <a href="cleanup.html" class="text-green-700 font-medium hover:underline mt-auto">Clean Up</a>
+      </div>
+
+      <!-- Data Breach -->
+      <div class="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Data Breach Check</h3>
+        <p class="text-gray-700 mb-4 flex-grow">See if your data was exposed in leaks or dark web breaches.</p>
+        <a href="darkweb.html" class="text-gray-900 font-medium hover:underline mt-auto">Scan Now</a>
+      </div>
+
+      <!-- Phishing Detection -->
+      <div class="bg-gradient-to-br from-indigo-50 to-white rounded-3xl shadow-lg p-6 hover:shadow-2xl transition transform hover:-translate-y-1 flex flex-col min-h-[200px]">
+        <h3 class="text-xl font-semibold text-indigo-600 mb-2">Phishing Link Scan</h3>
+        <p class="text-gray-700 mb-4 flex-grow">Detect hidden threats in suspicious links before you click.</p>
+        <a href="linkdetection.html" class="text-indigo-700 font-medium hover:underline mt-auto">Analyse Link</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= FOOTER SECTIONS ================= -->
+<!-- ================= LIVE CYBERSECURITY TIPS ================= -->
+<section id="liveTips" class="bg-gradient-to-r from-blue-50 to-white shadow-lg  p-8 text-center">
+  <h2 class="text-2xl font-bold text-blue-600 mb-4">💡 Live Cybersecurity Tip</h2>
+  <p id="tipText" class="text-gray-700 text-lg transition-opacity duration-500"></p>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section id="about" class="bg-white py-16 px-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <h3 class="text-2xl font-bold mb-4 text-gray-800">About Cyber Shield</h3>
+    <p class="text-gray-700 text-lg">We are a dedicated cybersecurity help center focused on providing free guidance and real-time response to digital threats for individuals and small businesses. Our mission is to empower users with actionable advice and protective services to stay safe online.</p>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact" class="bg-blue-600 text-white py-12 px-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <h3 class="text-xl font-semibold mb-2">Need urgent help?</h3>
+    <p>Email us at: <a href="mailto:team.cyber.shield@gmail.com" class="underline text-white hover:text-blue-200">team.cyber.shield@gmail.com</a></p>
+  </div>
+</section>
+
+
+<footer class="bg-gray-800 text-white py-4 text-center text-sm">
+  &copy; 2025 Cyber Shield: Security Awareness and Rescue System. All rights reserved.
+</footer>
+<!-- ================= FOOTER SECTIONS ================= -->
+
+<!-- ================= SCRIPTS ================= -->
+<script>
+const authBtn = document.getElementById("authBtn");
+const registerBtn = document.getElementById("registerBtn");
+const profileBtn = document.getElementById("profileBtn");
+const profileDropdown = document.getElementById("profileDropdown");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const executiveHelpForm = document.getElementById("reportForm");
+const serviceCards = document.querySelectorAll("#HelpingTopics .grid > div");
+const suggestionsBox = document.getElementById("suggestions");
+const serviceSuggestionsBox = document.getElementById("serviceSuggestions");
+
+// Function to lock the UI
+function lockUI() {
+    // Disable form
+    if(executiveHelpForm) {
+        executiveHelpForm.addEventListener("submit", function(e){
+            e.preventDefault();
+            alert("⚠️ Please log in to submit a form.");
+        });
+        executiveHelpForm.style.pointerEvents = "auto"; // allow click for alert
+        executiveHelpForm.style.opacity = "0.5";
+    }
+
+    // Disable service cards
+    serviceCards.forEach(card => {
+        card.querySelectorAll("a, button").forEach(btn => {
+            btn.addEventListener("click", function(e){
+                e.preventDefault();
+                alert("⚠️ Please log in to use this feature.");
+            });
+        });
+        card.style.pointerEvents = "auto";
+        card.style.opacity = "0.5";
+        card.classList.add("cursor-not-allowed");
+    });
+
+    // Disable suggestions and service box clicks
+    [suggestionsBox, serviceSuggestionsBox].forEach(el => {
+        if(el) {
+            el.addEventListener("click", function(e){
+                e.preventDefault();
+                alert("⚠️ Please log in to access this feature.");
+            });
+            el.style.pointerEvents = "auto";
+            el.style.opacity = "0.5";
+        }
+    });
+}
+
+// Unlock the UI
+function unlockUI() {
+    if(executiveHelpForm) executiveHelpForm.style.opacity = "1";
+    serviceCards.forEach(card => {
+        card.style.opacity = "1";
+        card.classList.remove("cursor-not-allowed");
+    });
+    [suggestionsBox, serviceSuggestionsBox].forEach(el => {
+        if(el) el.style.opacity = "1";
+    });
+}
+
+// Check login status
+fetch("login_status.php")
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === "logged_in") {
+            // User is logged in
+            authBtn.style.display = "none";
+
+            registerBtn.textContent = "History";
+            registerBtn.href = "history.php";
+            registerBtn.className = "bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700";
+
+            profileBtn.textContent = data.email.charAt(0).toUpperCase();
+            profileBtn.classList.remove("hidden");
+
+            profileBtn.addEventListener("click", () => profileDropdown.classList.toggle("hidden"));
+            logoutBtn.addEventListener("click", () => fetch("logout.php").then(() => location.reload()));
+
+            window.addEventListener("click", (e) => {
+                if(!document.getElementById("profileMenuContainer").contains(e.target)){
+                    profileDropdown.classList.add("hidden");
+                }
+            });
+
+            unlockUI();
+        } else {
+            // Not logged in
+            authBtn.style.display = "inline-block";
+
+            registerBtn.textContent = "Register";
+            registerBtn.href = "register.html";
+            registerBtn.className = "bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700";
+
+            lockUI();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        lockUI();
+    });
+</script>
+<script>
+let cybersecurityRules = {};
+let currentResponseType = 'immediate_help';
+let intelligentHelpSystem = null;
+
+// Initialize the intelligent help system
+async function initializeIntelligentHelp() {
+  try {
+    intelligentHelpSystem = new IntelligentHelpSystem();
+    await intelligentHelpSystem.initialize();
+    console.log('Intelligent Help System initialized successfully');
+  } catch (error) {
+    console.warn('Failed to initialize Intelligent Help System:', error);
+    intelligentHelpSystem = null;
+  }
+}
+
+// Load cybersecurity help rules at startup
+async function loadCybersecurityRules() {
+  try {
+    const res = await fetch("cybersecurity_help_rules.json");
+    if (!res.ok) throw new Error("Failed to load cybersecurity_help_rules.json");
+    cybersecurityRules = await res.json();
+    console.log("Cybersecurity rules loaded successfully:", cybersecurityRules.rules.length, "rules");
+  } catch (err) {
+    console.error("Error loading cybersecurity rules:", err);
+    cybersecurityRules = { rules: [], fallback_responses: ["I couldn't load the help database. Please try again later."] };
+  }
+  
+  // Initialize intelligent help system after rules are loaded
+  await initializeIntelligentHelp();
+}
+
+// Fuzzy matching function for better keyword detection
+function fuzzyMatch(query, keywords) {
+  const queryWords = query.toLowerCase().split(/\s+/);
+  const keywordVariations = keywords.flatMap(keyword => {
+    const variations = [keyword.toLowerCase()];
+    // Add common variations
+    if (keyword.includes('password')) variations.push('pwd', 'pass');
+    if (keyword.includes('malware')) variations.push('virus', 'trojan', 'spyware');
+    if (keyword.includes('phishing')) variations.push('phish', 'scam');
+    if (keyword.includes('hacked')) variations.push('hack', 'compromised', 'breached');
+    return variations;
+  });
+  
+  return queryWords.some(word => 
+    keywordVariations.some(variation => 
+      word.includes(variation) || variation.includes(word) || 
+      levenshteinDistance(word, variation) <= 2
+    )
+  );
+}
+
+// Simple Levenshtein distance for typo tolerance
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[str2.length][str1.length];
+}
+
+// Find the best matching rule for the user's query
+function findBestRule(query) {
+  if (!cybersecurityRules.rules || cybersecurityRules.rules.length === 0) {
+    return null;
+  }
+
+  let bestRule = null;
+  let bestScore = 0;
+
+  for (const rule of cybersecurityRules.rules) {
+    if (fuzzyMatch(query, rule.keywords)) {
+      // Calculate match score based on keyword relevance
+      const score = rule.keywords.filter(keyword => 
+        query.toLowerCase().includes(keyword.toLowerCase())
+      ).length;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestRule = rule;
+      }
+    }
+  }
+
+  return bestRule;
+}
+
+// Create response type selector buttons
+function createResponseTypeSelector() {
+  return `
+    <div class="mb-4 flex flex-wrap gap-2 justify-center">
+      <button onclick="switchResponseType('immediate_help')" 
+              class="response-type-btn px-3 py-1 rounded-lg border transition ${
+                currentResponseType === 'immediate_help' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }">
+        Quick Help
+      </button>
+      <button onclick="switchResponseType('detailed_explanation')" 
+              class="response-type-btn px-3 py-1 rounded-lg border transition ${
+                currentResponseType === 'detailed_explanation' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }">
+        Detailed Info
+      </button>
+      <button onclick="switchResponseType('step_by_step')" 
+              class="response-type-btn px-3 py-1 rounded-lg border transition ${
+                currentResponseType === 'step_by_step' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }">
+        Step-by-Step
+      </button>
+      <button onclick="switchResponseType('prevention_tips')" 
+              class="response-type-btn px-3 py-1 rounded-lg border transition ${
+                currentResponseType === 'prevention_tips' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }">
+        Prevention
+      </button>
+    </div>
+  `;
+}
+
+// Switch response type and update display
+function switchResponseType(type) {
+  currentResponseType = type;
+  // Re-run the help function with the current query
+  const currentQuery = document.getElementById("userQuery").value;
+  if (currentQuery.trim()) {
+    getHelp();
+  }
+}
+
+// Format response content based on type
+function formatResponseContent(response, type) {
+  if (!response || !response[type]) {
+    return "No information available for this response type.";
+  }
+
+  if (type === 'step_by_step' || type === 'prevention_tips') {
+    if (Array.isArray(response[type])) {
+      return `<ol class="list-decimal list-inside space-y-2 text-left">
+        ${response[type].map(item => `<li class="text-gray-700">${item}</li>`).join('')}
+      </ol>`;
+    }
+  }
+  
+  return `<p class="text-gray-700 text-left">${response[type]}</p>`;
+}
+
+async function getHelp() {
+  const input = document.getElementById("userQuery").value.trim();
+  const suggestionsBox = document.getElementById("suggestions");
+  const suggestionsList = document.getElementById("suggestionsList");
+  const serviceBox = document.getElementById("serviceSuggestions");
+  const serviceContent = document.getElementById("serviceContent");
+
+  // Reset content
+  suggestionsList.innerHTML = "";
+  serviceContent.innerHTML = "";
+
+  if (!input) {
+    suggestionsBox.classList.add("hidden");
+    serviceBox.classList.add("hidden");
+    return;
+  }
+
+  // Show loading state
+  suggestionsBox.classList.remove("hidden");
+  suggestionsList.innerHTML = `
+    <div class="text-center py-4">
+      <div class="animate-spin text-2xl mb-2">🧠</div>
+      <p class="text-gray-600">Analyzing your cybersecurity concern...</p>
+    </div>
+  `;
+
+  let helpContent = "";
+  let matchedRule = null;
+
+  try {
+    // Try to use the intelligent help system first
+    if (intelligentHelpSystem && intelligentHelpSystem.isInitialized) {
+      const response = await intelligentHelpSystem.getHelp(input);
+      
+      if (response.confidence > 0.3 && response.predictions && response.predictions.length > 0) {
+        // Use ML-based response
+        const topPrediction = response.predictions[0];
+        matchedRule = topPrediction.rule;
+        
+        helpContent = `
+          ${createResponseTypeSelector()}
+          <div class="mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-semibold text-blue-600">${matchedRule.category}</h4>
+              <span class="text-xs px-2 py-1 rounded ${response.confidence > 0.7 ? 'bg-green-100 text-green-800' : response.confidence > 0.5 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
+                ${(response.confidence * 100).toFixed(0)}% confidence
+              </span>
+            </div>
+            ${formatResponseContent(matchedRule.response, currentResponseType)}
+          </div>
+          <div class="mt-4 text-xs text-gray-500">
+            🤖 Enhanced with ML algorithms • ${response.responseMetadata?.confidenceLevel || 'Standard confidence'}
+          </div>
+        `;
+      } else {
+        // Low confidence, fall back to basic matching
+        matchedRule = findBestRule(input);
+        if (matchedRule) {
+          helpContent = `
+            ${createResponseTypeSelector()}
+            <div class="mb-3">
+              <h4 class="font-semibold text-blue-600 mb-2">${matchedRule.category}</h4>
+              ${formatResponseContent(matchedRule.response, currentResponseType)}
+            </div>
+          `;
+        } else {
+          // Use enhanced fallback with ML insights
+          helpContent = `<div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Need More Information</h4>
+            <p class="text-yellow-700 mb-3">${response.quickAnswer || "I need more specific details to provide targeted cybersecurity guidance."}</p>
+            <div class="text-sm text-yellow-600">
+              <p class="font-medium">Try being more specific, for example:</p>
+              <ul class="list-disc list-inside mt-1 space-y-1">
+                <li>"My Facebook account was hacked"</li>
+                <li>"I received a suspicious email"</li>
+                <li>"My computer is running slowly"</li>
+              </ul>
+            </div>
+          </div>`;
+        }
+      }
+    } else {
+      // Fallback to basic rule matching if ML system not available
+      matchedRule = findBestRule(input);
+      if (matchedRule) {
+        helpContent = `
+          ${createResponseTypeSelector()}
+          <div class="mb-3">
+            <h4 class="font-semibold text-blue-600 mb-2">${matchedRule.category}</h4>
+            ${formatResponseContent(matchedRule.response, currentResponseType)}
+          </div>
+        `;
+      } else {
+        const fallbackResponse = cybersecurityRules.fallback_responses && cybersecurityRules.fallback_responses.length > 0
+          ? cybersecurityRules.fallback_responses[Math.floor(Math.random() * cybersecurityRules.fallback_responses.length)]
+          : "Sorry, we couldn't identify the specific issue. Please provide more details or contact our executive help team.";
+        
+        helpContent = `<p class="text-gray-700">${fallbackResponse}</p>`;
+      }
+    }
+  } catch (error) {
+    console.error('Error in getHelp:', error);
+    // Fallback to basic matching on error
+    matchedRule = findBestRule(input);
+    if (matchedRule) {
+      helpContent = `
+        ${createResponseTypeSelector()}
+        <div class="mb-3">
+          <h4 class="font-semibold text-blue-600 mb-2">${matchedRule.category}</h4>
+          ${formatResponseContent(matchedRule.response, currentResponseType)}
+        </div>
+      `;
+    } else {
+      helpContent = `<p class="text-gray-700">I'm having trouble processing your request. Please try rephrasing your cybersecurity question.</p>`;
+    }
+  }
+
+  // Show enhanced suggestions
+  suggestionsBox.classList.remove("hidden");
+  suggestionsList.innerHTML = helpContent;
+
+  /* === Service Recommendation === */
+  let service = null;
+
+  // Enhanced service matching based on rule categories and keywords
+  if (matchedRule) {
+    switch (matchedRule.category) {
+      case "Account Security":
+      case "Social Media Security":
+        service = {
+          text: "We recommend using our <b>Account Recovery Service</b> to secure your account.",
+          link: "account_recovery.html",
+          button: "Start Account Recovery"
+        };
+        break;
+      case "Phishing & Social Engineering":
+        service = {
+          text: "Use our <b>Phishing Detection Service</b> to analyze suspicious links.",
+          link: "linkdetection.html",
+          button: "Detect Phishing"
+        };
+        break;
+      case "Data Protection":
+        service = {
+          text: "Check our <b>Data Breach Monitor</b> to see if your information was exposed.",
+          link: "darkweb.html",
+          button: "Check for Breach"
+        };
+        break;
+      case "Malware & Viruses":
+      case "Ransomware":
+        service = {
+          text: "Run our <b>Security Audit Service</b> to scan for threats.",
+          link: "security_audit.html",
+          button: "Start Security Scan"
+        };
+        break;
+      case "Financial Security":
+        service = {
+          text: "Use our <b>Incident Reporting Service</b> to document financial fraud.",
+          link: "report.html",
+          button: "Report Incident"
+        };
+        break;
+      default:
+        // General fallback service recommendation
+        service = {
+          text: "For comprehensive security help, try our <b>Security Audit Service</b>.",
+          link: "security_audit.html",
+          button: "Start Security Audit"
+        };
+    }
+  } else {
+    // Fallback to old logic for unmatched queries
+    if (input.includes("hacked") || input.includes("stolen")) {
+      service = {
+        text: "We recommend using our <b>Account Recovery Service</b> to regain access to your account.",
+        link: "account_recovery.html",
+        button: "Start Account Recovery"
+      };
+    } 
+    else if (input.includes("scam") || input.includes("fraud") || input.includes("fake")) {
+      service = {
+        text: "You should report this scam using our <b>Scam Reporting Service</b>.",
+        link: "report.html",
+        button: "Report Scam"
+      };
+    } 
+    else if (input.includes("breach") || input.includes("leak") || input.includes("exposed")) {
+      service = {
+        text: "Try our <b>Data Breach Check</b> tool and check if your data is involved.",
+        link: "darkweb.html",
+        button: "Check for Breach"
+      };
+    } 
+    else if (input.includes("phish") || input.includes("suspicious email") || input.includes("fake email")) {
+      service = {
+        text: "We suggest our <b>Phishing Detection Service</b> to analyse suspicious links.",
+        link: "linkdetection.html",
+        button: "Detect Phishing"
+      };
+    } 
+    else if (input.includes("audit") || input.includes("security check") || input.includes("vulnerability") || input.includes("virus") || input.includes("malware")) {
+      service = {
+        text: "Run our <b>Security Audit Service</b> to test your device security.",
+        link: "security_audit.html",
+        button: "Start Audit"
+      };
+    } 
+    else if (input.includes("old accounts") || input.includes("fake accounts") || input.includes("cleanup")) {
+      service = {
+        text: "Use our <b>System Cleanup Service</b>.",
+        link: "cleanup.html",
+        button: "Clean My System"
+      };
+    }
+  }
+
+  // Show service box
+  if (service) {
+    serviceBox.classList.remove("hidden");
+    serviceContent.innerHTML = `
+      <p class="mb-3">${service.text}</p>
+      <a href="${service.link}" 
+         class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+        ${service.button}
+      </a>`;
+  } else {
+    serviceBox.classList.add("hidden");
+  }
+
+  // Scroll into view
+  suggestionsBox.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// Load cybersecurity rules when page loads
+loadCybersecurityRules();
+</script>
+
+
+</body>
+<script src="ml_rules_engine.js"></script>
+<script src="ml_matchers.js"></script>
+<script src="intelligent_help_system.js"></script>
+<script>
+  const tipText = document.getElementById("tipText");
+  let tips = [];
+  let currentTip = 0;
+
+  async function loadTips() {
+    try {
+      const response = await fetch("tips.json");
+      if (!response.ok) throw new Error("Failed to load tips.json");
+      tips = await response.json();
+      if (tips.length > 0) {
+        showNextTip();
+        setInterval(showNextTip, 7000);
+      }
+    } catch (error) {
+      console.error("Error loading tips:", error);
+      tipText.textContent = "Unable to load tips at this time.";
+    }
+  }
+
+  function showNextTip() {
+    tipText.style.opacity = 0; // fade out
+    setTimeout(() => {
+      tipText.textContent = tips[currentTip];
+      tipText.style.opacity = 1; // fade in
+      currentTip = (currentTip + 1) % tips.length; // rotate tips
+    }, 500); // duration matches CSS transition
+  }
+
+  loadTips();
+</script>
+</html>

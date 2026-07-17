@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Personal Security Audit | Cyber Help Desk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #f4f8fc;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: 60px auto;
+      background: white;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      left: 20px; /* now on the left */
+      padding: 8px 16px;
+      font-size: 14px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: none; /* hidden at start */
+    }
+    .back-btn:hover {
+      background: #a71d2a;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+    p.description {
+      text-align: center;
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 14px 28px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: block;
+      margin: 20px auto;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .device-buttons {
+      display: none;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .device-buttons button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .device-buttons button:hover {
+      background: #1e7e34;
+    }
+    .question {
+      margin-bottom: 15px;
+    }
+    .question label {
+      font-size: 16px;
+      color: #333;
+    }
+    .question input {
+      margin-right: 10px;
+    }
+    #auditSection {
+      display: none;
+      margin-top: 20px;
+    }
+    #scoreBtn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      background: #6f42c1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #scoreBtn:hover {
+      background: #563d7c;
+    }
+    .result-box {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      display: none;
+      text-align: center;
+    }
+    .good { background: #d4edda; color: #155724; }
+    .average { background: #fff3cd; color: #856404; }
+    .poor { background: #f8d7da; color: #721c24; }
+    #gaugeContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Back Button -->
+    <button class="back-btn" id="backBtn" onclick="goBack()">⬅ Back</button>
+
+    <h1>Personal Security Audit</h1>
+    <p class="description">Click the button below to start your security audit.</p>
+
+    <button class="btn" onclick="showDeviceSelection()">Start Security Audit</button>
+
+    <div class="device-buttons" id="deviceSelection">
+      <button onclick="selectDevice('Mobile')">Mobile</button>
+      <button onclick="selectDevice('Windows')">Windows</button>
+      <button onclick="selectDevice('Mac')">Mac</button>
+      <button onclick="selectDevice('Linux')">Linux</button>
+    </div>
+
+    <div id="auditSection">
+      <form id="auditForm"></form>
+      <button type="button" id="scoreBtn" onclick="calculateScore()">Check My Score</button>
+    </div>
+
+    <div id="resultBox" class="result-box"></div>
+    <div id="gaugeContainer"></div>
+  </div>
+
+  <script>
+    let selectedDevice = "";
+    const backBtn = document.getElementById("backBtn");
+
+    const deviceQuestions = {
+      Mobile: [
+        "I use a phone lock with fingerprint or passcode",
+        "I have disabled app installs from unknown sources",
+        "I regularly update my mobile OS and apps",
+        "I don’t connect to unknown public Wi-Fi networks",
+        "I use 2FA on sensitive apps",
+        "I review app permissions regularly",
+        "I have antivirus/security app installed",
+        "I back up important mobile data regularly"
+      ],
+      Windows: [
+        "I use strong, unique passwords for accounts",
+        "Windows is updated with latest patches",
+        "I use trusted antivirus/antimalware software",
+        "Firewall is enabled and monitored",
+        "I avoid downloading from untrusted sources",
+        "I use a VPN on public networks",
+        "System restore is enabled",
+        "User Account Control (UAC) is not disabled"
+      ],
+      Mac: [
+        "I regularly install macOS updates",
+        "I use a standard (non-admin) account daily",
+        "I avoid downloading apps outside App Store",
+        "Gatekeeper is enabled",
+        "I use strong passwords or biometric login",
+        "FileVault encryption is enabled",
+        "Firewall is turned on",
+        "I use 2FA for iCloud and other services"
+      ],
+      Linux: [
+        "I regularly update system and packages",
+        "Firewall (ufw/firewalld) is enabled",
+        "I avoid running apps as root unnecessarily",
+        "SELinux/AppArmor is enforced",
+        "I use SSH keys instead of passwords",
+        "I have disabled unused ports/services",
+        "Audit logs are monitored",
+        "Strong user account password policies are enforced"
+      ]
+    };
+
+    function showDeviceSelection() {
+      document.querySelector(".btn").style.display = "none";
+      document.querySelector(".description").textContent = "Select your device type to begin the audit.";
+      document.getElementById("deviceSelection").style.display = "flex";
+      backBtn.style.display = "inline-block"; // show back button
+    }
+
+    function selectDevice(device) {
+      selectedDevice = device;
+      document.getElementById("deviceSelection").style.display = "none";
+      document.getElementById("auditSection").style.display = "block";
+      document.querySelector(".description").textContent = `Security audit for: ${device}`;
+      document.getElementById("resultBox").style.display = "none";
+      document.getElementById("gaugeContainer").innerHTML = "";
+
+      const form = document.getElementById("auditForm");
+      form.innerHTML = "";
+
+      deviceQuestions[device].forEach(q => {
+        const div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = `<label><input type="checkbox" name="q" value="1" /> ${q}</label>`;
+        form.appendChild(div);
+      });
+    }
+
+    function goBack() {
+      const deviceSel = document.getElementById("deviceSelection");
+      const auditSec = document.getElementById("auditSection");
+      const startBtn = document.querySelector(".btn");
+      const desc = document.querySelector(".description");
+
+      if (auditSec.style.display === "block") {
+        // inside questions → go back to device selection
+        auditSec.style.display = "none";
+        deviceSel.style.display = "flex";
+        desc.textContent = "Select your device type to begin the audit.";
+      } else if (deviceSel.style.display === "flex") {
+        // in device selection → go back to start
+        deviceSel.style.display = "none";
+        startBtn.style.display = "block";
+        desc.textContent = "Click the button below to start your security audit.";
+        backBtn.style.display = "none"; // hide when at start
+      }
+    }
+
+    function calculateScore() {
+      const checks = document.querySelectorAll('input[name="q"]:checked');
+      const total = document.querySelectorAll('input[name="q"]').length;
+      const score = checks.length;
+      const percentage = Math.round((score / total) * 100);
+
+      const resultBox = document.getElementById("resultBox");
+      resultBox.style.display = "block";
+
+      if (score >= 7) {
+        resultBox.className = "result-box good";
+        resultBox.textContent = `✅ Excellent! Your security habits on your ${selectedDevice} are strong.`;
+      } else if (score >= 4) {
+        resultBox.className = "result-box average";
+        resultBox.textContent = `⚠️ Moderate: You're doing okay on your ${selectedDevice}, but there’s room for improvement.`;
+      } else {
+        resultBox.className = "result-box poor";
+        resultBox.textContent = `🚨 Poor: Your ${selectedDevice} is at serious risk. Improve your digital hygiene ASAP.`;
+      }
+
+      drawGauge(percentage);
+    }
+
+    // Load Google Charts
+    google.charts.load('current', { packages: ['gauge'] });
+    function drawGauge(scoreValue) {
+      const data = google.visualization.arrayToDataTable([
+        ['Label', 'Value'],
+        ['% Score', scoreValue]
+      ]);
+
+      const options = {
+        width: 300, height: 300,
+        redFrom: 0, redTo: 40,
+        yellowFrom: 40, yellowTo: 70,
+        greenFrom: 70, greenTo: 100,
+        minorTicks: 5,
+        animation: {
+          duration: 1000,
+          easing: 'out'
+        }
+      };
+
+      const chartDiv = document.createElement("div");
+      chartDiv.id = "gaugeChart";
+
+      const gaugeContainer = document.getElementById("gaugeContainer");
+      gaugeContainer.innerHTML = "";
+      gaugeContainer.appendChild(chartDiv);
+
+      const chart = new google.visualization.Gauge(chartDiv);
+      chart.draw(data, options);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Breach Check | Cyber Shield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom animations and enhancements */
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up {
+      animation: slideUp 0.6s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .hover\:scale-105:hover {
+        transform: scale(1.02);
+      }
+      .hover\:-translate-y-1:hover {
+        transform: translateY(-2px);
+      }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen">
+  <!-- Header Navigation -->
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-xl md:text-2xl font-bold text-blue-600">
+        Cyber Shield: Data Breach Check
+      </h1>
+      <nav class="flex items-center gap-4 text-sm">
+        <a href="index.html" class="text-blue-600 hover:text-blue-800 transition font-medium">← Back to Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 fade-in">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">🕵️ Data Breach Monitor</h2>
+        <p class="text-lg text-gray-600 mb-6">Check if your personal information has been exposed in data breaches or found on the dark web</p>
+        
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div class="flex items-start">
+            <span class="text-yellow-600 text-xl mr-3">⚠️</span>
+            <div class="text-left">
+              <h3 class="font-semibold text-yellow-800 mb-2">Important Security Notice</h3>
+              <p class="text-yellow-700 text-sm">These tools help you check if your data was compromised in known breaches. Always use official, trusted services and never enter sensitive information on suspicious websites.</p>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="showOptions()" 
+                class="bg-blue-600 text-white py-3 px-8 rounded-xl font-semibold hover:bg-blue-700 transition duration-200 transform hover:scale-105 shadow-lg">
+          🔍 Start Breach Check
+        </button>
+      </div>
+
+      <!-- Hidden Options Section -->
+      <div id="breachOptions" class="mt-8 hidden slide-up">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Choose Your Breach Check Service</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Have I Been Pwned - Email -->
+          <a href="https://haveibeenpwned.com" target="_blank" 
+             class="block p-6 bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 border border-blue-100">
+            <div class="text-center">
+              <div class="text-3xl mb-3">📧</div>
+              <h3 class="text-xl font-bold text-blue-700 mb-3">Email Breach Check</h3>
+              <p class="text-gray-600 text-sm mb-4">Check if your email address has been compromised in data breaches</p>
+              <div class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full inline-block">Most Popular</div>
+            </div>
+          </a>
+
+          <!-- Have I Been Pwned - Passwords -->
+          <a href="https://haveibeenpwned.com/Passwords" target="_blank" 
+             class="block p-6 bg-gradient-to-br from-red-50 to-white rounded-2xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 border border-red-100">
+            <div class="text-center">
+              <div class="text-3xl mb-3">🔑</div>
+              <h3 class="text-xl font-bold text-red-700 mb-3">Password Breach Check</h3>
+              <p class="text-gray-600 text-sm mb-4">Verify if your passwords have been exposed in security breaches</p>
+              <div class="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full inline-block">High Priority</div>
+            </div>
+          </a>
+
+          <!-- Additional Service -->
+          <a href="https://monitor.firefox.com" target="_blank" 
+             class="block p-6 bg-gradient-to-br from-purple-50 to-white rounded-2xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 border border-purple-100">
+            <div class="text-center">
+              <div class="text-3xl mb-3">🔍</div>
+              <h3 class="text-xl font-bold text-purple-700 mb-3">Firefox Monitor</h3>
+              <p class="text-gray-600 text-sm mb-4">Mozilla's free service to check for data breaches</p>
+              <div class="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full inline-block">Alternative</div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Additional Information Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <!-- What to Do If Breached -->
+          <div class="bg-gray-50 rounded-xl p-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span class="text-orange-600 mr-2">🛡️</span>
+              If Your Data Was Breached:
+            </h4>
+            <ul class="space-y-2 text-gray-700 text-sm">
+              <li class="flex items-start"><span class="text-orange-500 mr-2">•</span>Change passwords immediately</li>
+              <li class="flex items-start"><span class="text-orange-500 mr-2">•</span>Enable two-factor authentication</li>
+              <li class="flex items-start"><span class="text-orange-500 mr-2">•</span>Monitor bank and credit card statements</li>
+              <li class="flex items-start"><span class="text-orange-500 mr-2">•</span>Consider credit monitoring services</li>
+              <li class="flex items-start"><span class="text-orange-500 mr-2">•</span>Be alert for phishing attempts</li>
+            </ul>
+          </div>
+
+          <!-- Prevention Tips -->
+          <div class="bg-green-50 rounded-xl p-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span class="text-green-600 mr-2">💡</span>
+              Prevention Tips:
+            </h4>
+            <ul class="space-y-2 text-gray-700 text-sm">
+              <li class="flex items-start"><span class="text-green-500 mr-2">•</span>Use unique passwords for each account</li>
+              <li class="flex items-start"><span class="text-green-500 mr-2">•</span>Use a reputable password manager</li>
+              <li class="flex items-start"><span class="text-green-500 mr-2">•</span>Enable 2FA wherever possible</li>
+              <li class="flex items-start"><span class="text-green-500 mr-2">•</span>Limit personal information shared online</li>
+              <li class="flex items-start"><span class="text-green-500 mr-2">•</span>Regularly check breach monitoring services</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Additional Services Section -->
+        <div class="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
+          <h4 class="text-lg font-semibold text-blue-800 mb-4 text-center">🔐 Additional Security Services</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+            <a href="account_recovery.html" class="block p-4 bg-white rounded-lg hover:shadow-md transition">
+              <div class="text-2xl mb-2">🔄</div>
+              <div class="text-sm font-medium text-gray-800">Account Recovery</div>
+            </a>
+            <a href="security_audit.html" class="block p-4 bg-white rounded-lg hover:shadow-md transition">
+              <div class="text-2xl mb-2">🛡️</div>
+              <div class="text-sm font-medium text-gray-800">Security Audit</div>
+            </a>
+            <a href="linkdetection.html" class="block p-4 bg-white rounded-lg hover:shadow-md transition">
+              <div class="text-2xl mb-2">🔗</div>
+              <div class="text-sm font-medium text-gray-800">Link Scanner</div>
+            </a>
+            <a href="attack_simulator.html" class="block p-4 bg-white rounded-lg hover:shadow-md transition">
+              <div class="text-2xl mb-2">⚡</div>
+              <div class="text-sm font-medium text-gray-800">Attack Simulator</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-6 text-center mt-12">
+    <div class="max-w-4xl mx-auto px-4">
+      <p class="text-sm">&copy; 2025 Cyber Shield: Security Awareness and Rescue System. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function showOptions() {
+      const options = document.getElementById('breachOptions');
+      options.classList.remove('hidden');
+      
+      // Smooth scroll to the options section
+      setTimeout(() => {
+        options.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+    
+    // Add mobile-friendly touch handling
+    if ('ontouchstart' in window) {
+      document.addEventListener('touchstart', function() {}, true);
+    }
+    
+    // Add entrance animation delay for cards
+    document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('a[href^="https://"]');
+      cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+      });
+    });
+  </script>
+</body>
+</html>

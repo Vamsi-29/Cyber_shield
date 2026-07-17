@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cyber Shield Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
+</head>
+<body>
+  <h1>Cyber Shield Test</h1>
+  <input id="userQuery" type="text" placeholder="Type your issue...">
+  <button onclick="getHelp()">Send</button>
+  <ul id="suggestionsList"></ul>
+
+  <script>
+    let model, rules = [];
+
+    async function loadModel() {
+      model = await use.load();
+      console.log("✅ Model loaded");
+    }
+
+    async function loadRules() {
+      const res = await fetch("rules.json");
+      rules = await res.json();
+      for (let rule of rules) {
+        const embeddings = await model.embed(rule.patterns);
+        rule.embeddings = embeddings.arraySync();
+      }
+      console.log("✅ Loaded " + rules.length + " rules.");
+    }
+
+    async function init() {
+      await loadModel();
+      await loadRules();
+      console.log("🚀 Cyber Shield ready");
+    }
+    init();
+
+    async function getHelp() {
+      const input = document.getElementById("userQuery").value;
+      const suggestionsList = document.getElementById("suggestionsList");
+      suggestionsList.innerHTML = "";
+
+      const inputEmbedding = await model.embed([input]);
+      const inputVec = inputEmbedding.arraySync()[0];
+
+      let bestRule = null, bestScore = 0;
+      for (const rule of rules) {
+        for (const emb of rule.embeddings) {
+          const score = cosineSimilarity(inputVec, emb);
+          if (score > bestScore) {
+            bestScore = score;
+            bestRule = rule;
+          }
+        }
+      }
+
+      if (bestRule) {
+        const confidence = bestScore > 0.65 ? "high" : bestScore > 0.45 ? "medium" : "low";
+        bestRule.replies[confidence].forEach(reply => {
+          const li = document.createElement("li");
+          li.textContent = reply;
+          suggestionsList.appendChild(li);
+        });
+        console.log("Matched:", bestRule.intent, "Score:", bestScore);
+      } else {
+        const li = document.createElement("li");
+        li.textContent = "We couldn’t classify this. Try rephrasing.";
+        suggestionsList.appendChild(li);
+      }
+    }
+
+    function cosineSimilarity(a, b) {
+      let dot = 0, magA = 0, magB = 0;
+      for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        magA += a[i] * a[i];
+        magB += b[i] * b[i];
+      }
+      return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+    }
+  </script>
+</body>
+</html>

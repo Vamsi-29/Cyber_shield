@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register – Cyber Shield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex items-center justify-center">
+
+  <form method="POST" action="register.php" class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+    <h2 class="text-2xl font-bold text-blue-600 mb-4 text-center">Create an Account</h2>
+
+    <label class="block mb-1 text-sm text-gray-700 font-medium">Full Name</label>
+    <input type="text" name="name" required
+           class="w-full p-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" />
+
+    <label class="block mb-1 text-sm text-gray-700 font-medium">Email</label>
+    <input type="email" name="email" required
+           class="w-full p-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" />
+
+    <label class="block mb-1 text-sm text-gray-700 font-medium">Password</label>
+    <input type="password" name="password" required
+           class="w-full p-3 border border-gray-300 rounded-xl mb-6 focus:ring-2 focus:ring-blue-500 outline-none" />
+
+    <button type="submit"
+            class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition duration-200">
+      Register
+    </button>
+
+    <p class="text-sm text-center mt-4">
+      Already have an account?
+      <a href="login.html" class="text-blue-600 hover:underline font-medium">Login</a>
+    </p>
+  </form>
+
+</body>
+</html>
