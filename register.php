@@ -1,6 +1,6 @@
 <?php
 // ==== CONFIG ====
-$BREVO_API_KEY = "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"; // Replace with your Brevo API key
+$BREVO_API_KEY = ""; // Replace with your Brevo API key
 
 // ==== DATABASE CONNECTION ====
 $local = true; // set false when deploying online
