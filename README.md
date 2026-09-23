@@ -12,6 +12,16 @@ Cyber Shield analyzes user-provided inputs, classifies common scams and cyber th
 - Modular handling of multiple threat categories
 - Practical mitigation recommendations
 
+## Implementation overview
+
+- **Threat knowledge base:** `cybersecurity_help_rules.json` stores the rule-driven security guidance used by the platform.
+- **Web application:** HTML pages provide the user-facing awareness and simulation workflows.
+- **Server-side components:** PHP endpoints handle account, recovery, history, and application actions.
+- **Persistence:** SQL schema support is included for simulator history data.
+- **Simulation workflow:** `attack_simulator.html` provides the controlled attack-response demonstration interface.
+
+This structure keeps the threat-classification content, web interface, server-side actions, and simulation history components distinguishable for review and further development.
+
 ## Why I built it
 
 The project explores how lightweight, explainable security rules can be used to classify common threats and guide users toward appropriate defensive actions without treating the system as a black-box model.
