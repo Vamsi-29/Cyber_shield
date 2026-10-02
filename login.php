@@ -23,10 +23,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (password_verify($password, $hashed_password)) {
             if ($is_verified == 1) {
+                // Rotate the session ID after authentication to prevent session fixation.
+                session_regenerate_id(true);
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['email'] = $email;
+                $safe_email = json_encode($email, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
                 echo "<script>
-                  sessionStorage.setItem('user_email','$email');
+                  sessionStorage.setItem('user_email', $safe_email);
                   location.href = 'index.html';
                 </script>";
                 exit;
